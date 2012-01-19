@@ -39,9 +39,20 @@ function logBrowserErrors(br) {
 
 }
 
+function log(br) {
+    console.log(br.location._url.href)
+    console.log(br.statusCode)
+    //console.log(br.html())
+}
+
 function openLoginPage(next) {
 
-    (new z()).visit('https://28degrees-online.gemoney.com.au/', function(e, br) {
+    var br = new z({debug: true})
+
+    /*console.log(br.cookies())
+    return
+*/
+    br.visit('https://28degrees-online.gemoney.com.au/', function(e, br) {
 
         if (e) {
             next(e)
@@ -50,8 +61,7 @@ function openLoginPage(next) {
 
         //logBrowserErrors(br)
 
-        console.log(br.location._url.href)
-        //console.log(br.html())
+        log(br)
 
         br.visit('https://28degrees-online.gemoney.com.au/access/login', function(e, br) {
 
@@ -61,9 +71,7 @@ function openLoginPage(next) {
             }
 
             //logBrowserErrors(br)
-
-            console.log(br.location._url.href)
-            //console.log(br.html())
+            log(br)
 
             br.document.getElementById('AccessToken_Username').value = creds.username
             br.document.getElementById('AccessToken_Password').value = creds.password
@@ -76,25 +84,38 @@ function openLoginPage(next) {
                     return
                 }
 
-                //logBrowserErrors(br)
-
-                console.log(br.location._url.href)
-
                 if (br.html().indexOf('/access/login') !== -1) {
                     next('Error logging in, wrong credentials.')
                     return
                 }
 
-                console.log('Great success!')
-                //console.log(br.html())
+                function isLoaded(w) {
+                    return br.document.querySelector(':contains("My Account")')
+                }
 
-                br.visit(br.location._url.href, function(err, br) {
+                br.wait(isLoaded, function() {
+
+                    console.log('Great success!')
+
+                    br.clickLink('My Account', function() {
+                        console.log('After click on my acc')
+                        console.log(arguments)
+                    })
+
+                })
+
+
+                /*br.visit(br.location._url.href, function(err, br) {
                     if (err) {
                         next(err)
                         return
                     }
-                    br.dump()
-                })
+*/
+                    //br.viewInBrowser()
+
+                    //br.dump()
+                    console.log(br.html())
+                //})
             })
 
         })
