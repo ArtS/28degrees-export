@@ -48,10 +48,10 @@ function openLoginPage(next) {
             return
         }
 
-        logBrowserErrors(br)
+        //logBrowserErrors(br)
 
-        console.log(br.location._url)
-        console.log(br.html())
+        console.log(br.location._url.href)
+        //console.log(br.html())
 
         br.visit('https://28degrees-online.gemoney.com.au/access/login', function(e, br) {
 
@@ -60,25 +60,25 @@ function openLoginPage(next) {
                 return
             }
 
-            logBrowserErrors(br)
+            //logBrowserErrors(br)
 
-            console.log(br.location._url)
-            console.log(br.html())
+            console.log(br.location._url.href)
+            //console.log(br.html())
 
             br.document.getElementById('AccessToken_Username').value = creds.username
             br.document.getElementById('AccessToken_Password').value = creds.password
 
 
-            br.pressButton('[name|="SUBMIT"]', function(err, br) {
+            br.pressButton('[name="SUBMIT"]', function(err, br) {
+
                 if (err) {
                     next(err)
                     return
                 }
 
-                logBrowserErrors(br)
+                //logBrowserErrors(br)
 
                 console.log(br.location._url.href)
-                console.log(br.html())
 
                 if (br.html().indexOf('/access/login') !== -1) {
                     next('Error logging in, wrong credentials.')
@@ -86,6 +86,15 @@ function openLoginPage(next) {
                 }
 
                 console.log('Great success!')
+                //console.log(br.html())
+
+                br.visit(br.location._url.href, function(err, br) {
+                    if (err) {
+                        next(err)
+                        return
+                    }
+                    br.dump()
+                })
             })
 
         })
