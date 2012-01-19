@@ -70,9 +70,6 @@ function openLoginPage(next) {
                 return
             }
 
-            //logBrowserErrors(br)
-            log(br)
-
             br.document.getElementById('AccessToken_Username').value = creds.username
             br.document.getElementById('AccessToken_Password').value = creds.password
 
@@ -84,10 +81,11 @@ function openLoginPage(next) {
                     return
                 }
 
+                /*
                 if (br.html().indexOf('/access/login') !== -1) {
                     next('Error logging in, wrong credentials.')
                     return
-                }
+                }*/
 
                 function isLoaded(w) {
                     return br.document.querySelector(':contains("My Account")')
@@ -97,25 +95,29 @@ function openLoginPage(next) {
 
                     console.log('Great success!')
 
-                    br.clickLink('My Account', function() {
-                        console.log('After click on my acc')
-                        console.log(arguments)
+                    br.clickLink('My Account', function(err, br, status) {
+
+                        if (err) {
+                            next(err)
+                            return
+                        }
+
+                        br.clickLink("Transactions", function(err, br, status) {
+
+                            if (err) {
+                                next(err)
+                                return
+                            }
+
+                            //log(br)
+                            console.log(br.html())
+
+                        })
                     })
 
                 })
 
 
-                /*br.visit(br.location._url.href, function(err, br) {
-                    if (err) {
-                        next(err)
-                        return
-                    }
-*/
-                    //br.viewInBrowser()
-
-                    //br.dump()
-                    console.log(br.html())
-                //})
             })
 
         })
