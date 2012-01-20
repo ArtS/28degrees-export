@@ -47,11 +47,31 @@ function log(br) {
 
 function openLoginPage(next) {
 
-    var br = new z({debug: true})
+    var br = new z()//{debug: true})
+      , stage = 'login'
+      , stages = {
+            login: 'input[name="SUBMIT"]',
+            account: ':contains("My Account")'
+        }
 
-    /*console.log(br.cookies())
-    return
-*/
+
+    br.on('done', function() {
+        console.log('Done!')
+        console.log(arguments)
+    })
+
+    /*
+    br.on('error', function() {
+        console.log('Error!')
+        console.log(arguments)
+    })
+    */
+
+    br.on('loaded', function() {
+        console.log('Loaded!')
+        console.log(arguments[0].location._url.href)
+    })
+
     br.visit('https://28degrees-online.gemoney.com.au/', function(e, br) {
 
         if (e) {
@@ -61,7 +81,6 @@ function openLoginPage(next) {
 
         //logBrowserErrors(br)
 
-        log(br)
 
         br.visit('https://28degrees-online.gemoney.com.au/access/login', function(e, br) {
 
@@ -81,44 +100,35 @@ function openLoginPage(next) {
                     return
                 }
 
+            })
+
+            //br.wait(isLoaded, function() {
+
                 /*
-                if (br.html().indexOf('/access/login') !== -1) {
-                    next('Error logging in, wrong credentials.')
-                    return
-                }*/
+                br.clickLink('My Account', function(err, br, status) {
 
-                function isLoaded(w) {
-                    return br.document.querySelector(':contains("My Account")')
-                }
+                    if (err) {
+                        next(err)
+                        return
+                    }
 
-                br.wait(isLoaded, function() {
-
-                    console.log('Great success!')
-
-                    br.clickLink('My Account', function(err, br, status) {
+                    br.clickLink("Transactions", function(err, br, status) {
 
                         if (err) {
                             next(err)
                             return
                         }
 
-                        br.clickLink("Transactions", function(err, br, status) {
+                        //log(br)
+                        console.log(br.html())
 
-                            if (err) {
-                                next(err)
-                                return
-                            }
-
-                            //log(br)
-                            console.log(br.html())
-
-                        })
                     })
+                })*/
+            //})
 
-                })
 
-
-            })
+            /*
+            */
 
         })
 
