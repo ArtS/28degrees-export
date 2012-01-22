@@ -97,9 +97,22 @@ function openLoginPage(next) {
                     return elemExists(br, ':contains("My Recent Transactions")')
                 },
                 action: function(br) {
-                    // This will get us all transactons available for download.
-                    // This is really cool. Supposedly.
-                    br.location = 'https://28degrees-online.gemoney.com.au/wps/myportal/ge28degrees/public/account/transactions/'
+                    var h = br.query('h2:contains("My Recent Transactions")')
+
+                    if (!h) {
+                        console.log('Cannot find "My Recent Transactions" section on home page. Requesting exit.')
+                        this.exit = true
+                        return
+                    }
+
+                    var link = h.parentNode.parentNode.querySelector('a[name="Wrapper_lnMoreInfo"]')
+                    if (!link) {
+                        console.log('Cannot find link "MORE..." in "My Recent Transactions" section. Requesting exit.')
+                        this.exit = true
+                        return
+                    }
+
+                    br.fire('click', link)
                 }
             }
           , {
@@ -113,16 +126,50 @@ function openLoginPage(next) {
                     var rows = br.queryAll('tr[name="DataContainer"]')
                       , isNextButtonVisible = elemExists(br, 'a[name="nextButton"]')
 
-                    console.log(br.query('[name="endDateHistoryText"]').innerHTML)
                     console.log('Rows: ' + rows.length)
+                    console.log('Dates: ' + br.queryAll('[name="Transaction_TransactionDate"]').length)
+                    console.log('Dates 2: ' + br.queryAll('td', rows[0]).length)
+
+                    _(rows).each(function(row) {
+
+                        var cells = row.querySelectorAll('td')
+                          , date
+                          , name
+                          , desc
+                          , amt
+
+                        _(cells).each(function(cell) {
+
+
+                            if (cell.childNodes.length !== 0 &&
+                                cell.childNodes[0].tagName.toLowerCase() === 'span') {
+
+                                var span = cell.childNodes[0]
+
+                                //console.log('span:' + span.attributes.getNamedItem('name').value)
+                                //console.log('span:' + span.innerHTML)
+
+                                switch (span.attributes.getNamedItem('name').value) {
+                                    case 'Transaction_TransactionDate': date = span.innerHTML;
+                                    case 'Transaction_CardName': name = span.innerHTML;
+                                    case 'Transaction_TransactionDescription': desc = span.innerHTML;
+                                    case 'Transaction_Amount': amt = span.innerHTML;
+                                }
+                            }
+                        })
+
+                        //console.log(row.innerHTML)
+                        //console.log(date.innerHTML + ':' + name.innerHTML + ':' + desc.innerHTML + ':' + amt.innerHTML)
+
+                    })
 
                     if (isNextButtonVisible) {
                         console.log('Some records available, going further back...')
-                        var link = br.query('a[name="nextButton"]').attributes.getNamedItem('href').value
-                        console.log('Link: ' + link)
-                        br.location = link//clickLink('a[name="nextButton"]')
+                        var link = br.query('a[name="nextButton"]')
+                        console.log('Link: ' + link.attributes.getNamedItem('href').value)
+                        br.fire('click', link)
                     } else {
-                        console.log('Looks like we reached the end of transactions.')
+                        console.log('Looks like we have reached the end of transactions. Requesting exit.')
                         this.exit = true
                     }
                 }
