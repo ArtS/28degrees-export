@@ -33,8 +33,8 @@ sits. In that file add these three lines (replace `username`, `password`,
     password
     account name
 
-The third line - `account name` is optional. By default `QIF Account` is used
-as account name when writing QIF file to disk.
+The third line, `account name`, is optional. By default `QIF Account` is used
+as an account name when writing QIF file to disk.
 
 
 ## Usage
