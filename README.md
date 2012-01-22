@@ -30,7 +30,9 @@ sits. In that file add these three lines (replace `username`, `password`,
 `account name` with your user name etc):
 
 `username`
+
 `password`
+
 `account name`
 
 The third line - `account name` is optional. By default `QIF Account` is used
