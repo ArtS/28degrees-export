@@ -26,12 +26,12 @@ website. **THESE details will not be used for anything but logging into the
 28degrees' website.**
 
 To do that, create a file named `.credentials` in the same folder where `export.py`
-sits. In that file add these three lines (replace `username` with your user name etc)
-actual details:
+sits. In that file add these three lines (replace `username`, `password`,
+`account name` with your user name etc):
 
-`username
-password
-account name`
+`username`
+`password`
+`account name`
 
 The third line - `account name` is optional. By default `QIF Account` is used
 as account name when writing QIF file to disk.
