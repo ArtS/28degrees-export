@@ -3,11 +3,14 @@
 from mechanize import Browser
 from pyquery import PyQuery
 from collections import namedtuple
+import re
+
 
 Transaction = namedtuple('Transaction', ['date', 'name', 'desc', 'amount'])
 
 
 def getCredentials():
+
     try:
         with open('.credentials', 'r') as f:
             lines = f.read().split('\n')
@@ -25,6 +28,7 @@ def getCredentials():
 
 
 def fetchTransactions(text):
+
     q = PyQuery(text)
     trans = []
 
@@ -41,9 +45,33 @@ def fetchTransactions(text):
     return trans
 
 
+"""See http://en.wikipedia.org/wiki/Quicken_Interchange_Format for more info."""
+def writeQIF(trans, creds):
+
+    accName = creds[2] if len(creds) > 2 else 'QIF Account'
+
+    with open('export.qif', 'w') as f:
+
+        # Write header
+        f.write('!Account\n')
+        f.write('N' + accName +'\n')
+        f.write('TCCard\n')
+        f.write('^\n')
+        f.write('!Type:CCard\n')
+
+        for t in trans:
+            f.write('C\n') # status - uncleared
+            f.write('D' + t.date + '\n') # date
+            f.write('T' + t.amount.replace('$', '') + '\n') # amount
+            f.write('M' + re.sub('\s+', ' ', t.name + ' ' + t.desc) + '\n') # memo
+            #f.write('P' + t.desc.replace('\t', ' ') + '\n') # payee
+            f.write('^\n') # end of record
+
+
 def export():
 
     creds = getCredentials()
+
     if not creds:
         return
 
@@ -71,12 +99,21 @@ def export():
     print br.geturl()
 
     trans = []
-    text = br.response().read()
-    trans += fetchTransactions(text)
 
-    print trans
+    while True:
+        text = br.response().read()
 
+        q = PyQuery(text)
+        trans += fetchTransactions(text)
 
+        nextButton = q('a[name="nextButton"]')
+        isNextVisible = len(nextButton) != 0
+        if not isNextVisible:
+            break
+        br.open(nextButton[0].attrib['href'])
+        print(br.geturl())
+
+    writeQIF(trans, creds)
 
 if __name__ == "__main__":
     export()
