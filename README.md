@@ -13,7 +13,7 @@ saving them into QIF file.
 You will need some things for this tool to work:
 
     1. Python
-    2. Mechinize
+    2. Mechanize
     3. PyQuery
     4. Git
 
