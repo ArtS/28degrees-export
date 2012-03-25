@@ -16,7 +16,7 @@ def getCredentials():
             lines = f.read().split('\n')
 
             if len(lines) < 2:
-                print '.credentials files should have username on first line, password on second'
+                print '.credentials file should have username on first line, password on second'
                 return None
 
             return lines
@@ -71,7 +71,6 @@ def writeQIF(trans, creds):
 def export():
 
     creds = getCredentials()
-
     if not creds:
         return
 
@@ -114,6 +113,7 @@ def export():
         print(br.geturl())
 
     writeQIF(trans, creds)
+
 
 if __name__ == "__main__":
     export()
