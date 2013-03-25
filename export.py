@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 from mechanize import Browser
 from pyquery import PyQuery
 from collections import namedtuple
 import re
 
 
-Transaction = namedtuple('Transaction', ['date', 'name', 'desc', 'amount'])
+Transaction = namedtuple('Transaction', ['date', 'amount', 'memo', 'payee'])
 
 
 def getCredentials():
@@ -16,32 +17,52 @@ def getCredentials():
             lines = f.read().split('\n')
 
             if len(lines) < 2:
-                print '.credentials file should have username on first line, password on second'
+                print('.credentials file should have username on first line, password on second')
                 return None
 
             return lines
 
     except Exception as e:
-        print 'Error opening credentials file.'
-        print e
+        print('Error opening credentials file.')
+        print(e)
         return None
 
 
+def get_node_text(node):
+    return node.text if len(node.text) != 0 else None
+
+
+"""
+0-22 payee, 23-37 loc, 38-$ loc
+PAYPAL *KOBO INC       XXXXXXXXXX    ON
+WWW.THREADLESS.COM     XXXXXXXXXXX   IL
+"""
 def fetchTransactions(text):
 
     q = PyQuery(text)
     trans = []
 
     for row in q('tr[name="DataContainer"]'):
-        date = q('span[name="Transaction_TransactionDate"]', row)
-        name = q('span[name="Transaction_CardName"]', row)
-        desc = q('span[name="Transaction_TransactionDescription"]', row)
-        amount = q('span[name="Transaction_Amount"]', row)
 
-        trans.append(Transaction(date=date[0].text if len(date) != 0 else None,
-                                 name=name[0].text if len(name) != 0 else None,
-                                 desc=desc[0].text if len(desc) != 0 else None,
-                                 amount=amount[0].text if len(amount) != 0 else None))
+        date = get_node_text(q('span[name="Transaction_TransactionDate"]', row)[0])
+        name = get_node_text(q('span[name="Transaction_CardName"]', row)[0])
+        desc_payee = get_node_text(q('span[name="Transaction_TransactionDescription"]', row)[0])
+        amount = get_node_text(q('span[name="Transaction_Amount"]', row)[0])
+
+        if len(desc_payee) >= 23:
+            payee = desc_payee[:23]
+            desc = desc_payee[23:]
+        else:
+            payee = desc_payee
+            desc = ''
+
+        # Clean up the data
+        amount = amount.replace('$', '')
+        payee = re.sub('\s+', ' ', payee)
+        memo = re.sub('\s+', ' ', name + ' ' + desc)
+
+        trans.append(Transaction(date=date, amount=amount, memo=memo, payee=payee))
+
     return trans
 
 
@@ -53,19 +74,19 @@ def writeQIF(trans, creds):
     with open('export.qif', 'w') as f:
 
         # Write header
-        f.write('!Account\n')
-        f.write('N' + accName +'\n')
-        f.write('TCCard\n')
-        f.write('^\n')
-        f.write('!Type:CCard\n')
+        print('!Account', file=f)
+        print('N' + accName, file=f)
+        print('TCCard', file=f)
+        print('^', file=f)
+        print('!Type:CCard', file=f)
 
         for t in trans:
-            f.write('C\n') # status - uncleared
-            f.write('D' + t.date + '\n') # date
-            f.write('T' + t.amount.replace('$', '') + '\n') # amount
-            f.write('M' + re.sub('\s+', ' ', t.name + ' ' + t.desc) + '\n') # memo
-            #f.write('P' + t.desc.replace('\t', ' ') + '\n') # payee
-            f.write('^\n') # end of record
+            print('C', file=f) # status - uncleared
+            print('D' + t.date, file=f) # date
+            print('T' + t.amount, file=f) # amount
+            print('M' + t.memo, file=f) # memo
+            print('P' + t.payee, file=f) # payee
+            print('^', file=f) # end of record
 
 
 def export():
@@ -77,25 +98,25 @@ def export():
     br = Browser()
 
     br.open('https://28degrees-online.gemoney.com.au/')
-    print br.geturl()
+    print(br.geturl())
 
     br.open('https://28degrees-online.gemoney.com.au/access/login')
-    print br.geturl()
+    print(br.geturl())
 
     br.select_form(nr=0)
     br.form['USER'] = creds[0]
     br.form['PASSWORD'] = creds[1]
     br.submit()
 
-    print br.geturl()
+    print(br.geturl())
 
     text = br.response().read()
     if "window.location = '/access/login';" in text:
-        print 'Login error'
+        print('Login error')
         return
 
     br.open('https://28degrees-online.gemoney.com.au/wps/myportal/ge28degrees/public/account/transactions/')
-    print br.geturl()
+    print(br.geturl())
 
     trans = []
 
