@@ -85,7 +85,7 @@ def writeQIF(trans, creds):
 
 def export():
 
-    creds = getCredentials()
+    creds = get_credentials()
     if not creds:
         return
 
@@ -104,12 +104,33 @@ def export():
 
     print(br.geturl())
 
+
     text = br.response().read()
     if "window.location = '/access/login';" in text:
         print('Login error')
         return
 
     br.open('https://28degrees-online.gemoney.com.au/wps/myportal/ge28degrees/public/account/transactions/')
+    text = br.response().read()
+    if 'New card number required' in text:
+        q = PyQuery(text)
+        cancel_btn = q('input[name="cancelButton"]')
+        if len(cancel_btn) == 0:
+            print('No cancel button found')
+            return
+        cancel_btn = cancel_btn[0]
+
+        matches = re.match('location\.href="(.*)"', cancel_btn.attrib['onclick'])
+
+        if len(matches.groups()) == 0:
+            print('No onclick event in cancel button found')
+            return
+
+        # Cancel new card number submission
+        br.open('https://28degrees-online.gemoney.com.au' + matches.groups()[0])
+        br.open('https://28degrees-online.gemoney.com.au/wps/myportal/ge28degrees/public/account/transactions/')
+
+
     print(br.geturl())
 
     trans = []
