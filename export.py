@@ -1,31 +1,25 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+from getpass import getpass
+import re
+
 from mechanize import Browser
 from pyquery import PyQuery
 from collections import namedtuple
-import re
 
 
 Transaction = namedtuple('Transaction', ['date', 'amount', 'memo', 'payee'])
 
 
-def getCredentials():
+def get_credentials():
 
-    try:
-        with open('.credentials', 'r') as f:
-            lines = f.read().split('\n')
+    print('Enter your username and password: ')
+    lines = []
+    lines.append(raw_input())
+    lines.append(getpass())
 
-            if len(lines) < 2:
-                print('.credentials file should have username on first line, password on second')
-                return None
-
-            return lines
-
-    except Exception as e:
-        print('Error opening credentials file.')
-        print(e)
-        return None
+    return lines
 
 
 def get_node_text(node):
