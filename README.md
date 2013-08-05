@@ -1,4 +1,4 @@
-# Export to QIF from 28degrees Master Card website
+# Export to QIF/CSV from 28degrees Master Card website
 
 
 ## Description
