@@ -4,6 +4,7 @@ from __future__ import print_function
 from getpass import getpass
 import re
 from datetime import datetime
+import argparse
 
 from mechanize import Browser
 from pyquery import PyQuery
@@ -180,7 +181,7 @@ def open_transactions_page(br):
     return br
 
 
-def export():
+def export(csv):
 
     t_db = db.init_db()
     if not t_db:
@@ -231,9 +232,16 @@ def export():
         print('Saving transactions...')
         db.save_transactions(new_trans)
 
-        write_qif(new_trans)
-        write_csv(new_trans)
+        if csv:
+            write_csv(new_trans)
+        else:
+            write_qif(new_trans)
 
 
 if __name__ == "__main__":
-    export()
+    parser = argparse.ArgumentParser("""I load transactions from 28degrees-online.gemoney.com.au.
+If no arguments specified, I will produce a nice QIF file for you
+To get CSV, specify run me with --csv parameter""")
+    parser.add_argument('--csv', action='store_true')
+    args = parser.parse_args()
+    export(**vars(args))
