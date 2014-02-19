@@ -108,8 +108,8 @@ def write_qif(trans):
             print('C', file=f) # status - uncleared
             print('D' + t.date, file=f) # date
             print('T' + t.amount, file=f) # amount
-            print('M' + t.payer + ' ' + t.memo, file=f) # memo
-            print('P' + t.payee, file=f) # payee
+            print('M' + t.payer, file=f)
+            print('P' + t.payee + t.memo, file=f)
             print('^', file=f) # end of record
 
 
