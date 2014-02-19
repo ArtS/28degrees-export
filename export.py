@@ -113,6 +113,25 @@ def write_qif(trans):
             print('^', file=f) # end of record
 
 
+@messages('Writing CSV file...', 'OK', '')
+def write_csv(trans):
+
+    f_str = '%d/%m/%Y'
+    s_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) <
+                                                  datetime.strptime(t2.date, f_str) else t2,
+                                   trans).date, f_str)
+    e_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) >
+                                                  datetime.strptime(t2.date, f_str) else t2,
+                                   trans).date, f_str)
+
+    out_str = '%Y.%m.%d'
+    file_name = './export/%s-%s.csv' % (s_d.strftime(out_str), e_d.strftime(out_str))
+    with open(file_name, 'w') as f:
+        print('Date,Amount,Payer,Payee', file=f)
+        for t in trans:
+            print('"%s","%s","%s","%s"' % (t.date, t.amount, t.payer, t.payee), file=f)
+
+
 @messages('Logging in...', 'OK', 'Login failed')
 def login(creds):
 
@@ -213,6 +232,7 @@ def export():
         db.save_transactions(new_trans)
 
         write_qif(new_trans)
+        write_csv(new_trans)
 
 
 if __name__ == "__main__":
