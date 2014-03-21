@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+import os
 from getpass import getpass
 import re
 from datetime import datetime
@@ -16,6 +17,7 @@ import db
 Transaction = namedtuple('Transaction',
                          ['date', 'payer', 'amount', 'memo', 'payee'])
 
+export_path = './export'
 
 def messages(before, after_ok, after_fail):
 
@@ -32,7 +34,7 @@ def messages(before, after_ok, after_fail):
 
 def get_credentials():
 
-    print('Enter your username and password: ')
+    print('Enter your username: ')
     lines = []
     lines.append(raw_input())
     lines.append(getpass())
@@ -84,18 +86,8 @@ def fetchTransactions(text):
 
 """See http://en.wikipedia.org/wiki/Quicken_Interchange_Format for more info."""
 @messages('Writing QIF file...', 'OK', '')
-def write_qif(trans):
+def write_qif(trans, file_name):
 
-    f_str = '%d/%m/%Y'
-    s_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) <
-                                                  datetime.strptime(t2.date, f_str) else t2,
-                                   trans).date, f_str)
-    e_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) >
-                                                  datetime.strptime(t2.date, f_str) else t2,
-                                   trans).date, f_str)
-
-    out_str = '%Y.%m.%d'
-    file_name = './export/%s-%s.qif' % (s_d.strftime(out_str), e_d.strftime(out_str))
     with open(file_name, 'w') as f:
 
         # Write header
@@ -115,18 +107,8 @@ def write_qif(trans):
 
 
 @messages('Writing CSV file...', 'OK', '')
-def write_csv(trans):
+def write_csv(trans, file_name):
 
-    f_str = '%d/%m/%Y'
-    s_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) <
-                                                  datetime.strptime(t2.date, f_str) else t2,
-                                   trans).date, f_str)
-    e_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) >
-                                                  datetime.strptime(t2.date, f_str) else t2,
-                                   trans).date, f_str)
-
-    out_str = '%Y.%m.%d'
-    file_name = './export/%s-%s.csv' % (s_d.strftime(out_str), e_d.strftime(out_str))
     with open(file_name, 'w') as f:
         print('Date,Amount,Payer,Payee', file=f)
         for t in trans:
@@ -183,6 +165,9 @@ def open_transactions_page(br):
 
 def export(csv):
 
+    if not os.path.exists(export_path):
+        os.makedirs(export_path)
+
     t_db = db.init_db()
     if not t_db:
         print('Error initialising database')
@@ -222,20 +207,32 @@ def export(csv):
         print('Opening next page...')
         br.open(nextButton[0].attrib['href'])
 
-        #if len(trans) > 50:
-        #    break
+        if len(trans) > 60:
+            break
 
     new_trans = db.get_only_new_transactions(trans)
     print('Total of %s new transactions obtained' % len(new_trans))
 
     if len(new_trans) != 0:
+
         print('Saving transactions...')
         db.save_transactions(new_trans)
 
+        f_str = '%d/%m/%Y'
+        s_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) <
+                                                      datetime.strptime(t2.date, f_str) else t2,
+                                       trans).date, f_str)
+        e_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) >
+                                                      datetime.strptime(t2.date, f_str) else t2,
+                                       trans).date, f_str)
+        out_str = '%Y.%m.%d'
+
         if csv:
-            write_csv(new_trans)
+            file_name = os.path.join(export_path, '%s-%s.csv' % (s_d.strftime(out_str), e_d.strftime(out_str)))
+            write_csv(new_trans, file_name)
         else:
-            write_qif(new_trans)
+            file_name = os.path.join(export_path, '%s-%s.qif' % (s_d.strftime(out_str), e_d.strftime(out_str)))
+            write_qif(new_trans, file_name)
 
 
 if __name__ == "__main__":
