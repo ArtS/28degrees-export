@@ -88,6 +88,7 @@ def fetchTransactions(text):
 @messages('Writing QIF file...', 'OK', '')
 def write_qif(trans, file_name):
 
+    print(file_name)
     with open(file_name, 'w') as f:
 
         # Write header
@@ -109,6 +110,7 @@ def write_qif(trans, file_name):
 @messages('Writing CSV file...', 'OK', '')
 def write_csv(trans, file_name):
 
+    print(file_name)
     with open(file_name, 'w') as f:
         print('Date,Amount,Payer,Payee', file=f)
         for t in trans:
