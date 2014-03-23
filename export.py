@@ -207,8 +207,8 @@ def export(csv):
         print('Opening next page...')
         br.open(nextButton[0].attrib['href'])
 
-        if len(trans) > 60:
-            break
+        #if len(trans) > 60:
+        #    break
 
     new_trans = db.get_only_new_transactions(trans)
     print('Total of %s new transactions obtained' % len(new_trans))
