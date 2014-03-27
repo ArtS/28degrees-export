@@ -54,9 +54,10 @@ WWW.THREADLESS.COM     XXXXXXXXXXX   IL
 def fetchTransactions(text):
 
     q = PyQuery(text)
+    qq = q
     trans = []
 
-    for row in q('tr[name="DataContainer"]'):
+    for row in q('div[name="transactionsHistory"] tr[name="DataContainer"]'):
 
         date = get_node_text(q('span[name="Transaction_TransactionDate"]', row)[0])
         payer = get_node_text(q('span[name="Transaction_CardName"]', row)[0])
@@ -223,10 +224,10 @@ def export(csv):
         f_str = '%d/%m/%Y'
         s_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) <
                                                       datetime.strptime(t2.date, f_str) else t2,
-                                       trans).date, f_str)
+                                       new_trans).date, f_str)
         e_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) >
                                                       datetime.strptime(t2.date, f_str) else t2,
-                                       trans).date, f_str)
+                                       new_trans).date, f_str)
         out_str = '%Y.%m.%d'
 
         if csv:
