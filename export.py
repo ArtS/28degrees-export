@@ -141,7 +141,25 @@ def login(creds):
 @messages('Opening transactions page...', 'OK', 'Exiting...')
 def open_transactions_page(br):
 
-    br.open('https://28degrees-online.gemoney.com.au/wps/myportal/ge28degrees/public/account/transactions/')
+    text = br.response().read()
+    qq = PyQuery(text)
+
+    portalLink = qq('a')
+    if len(portalLink) == 0:
+        print('Unable to locate link to main page')
+        return None
+
+    br.open(portalLink[0].attrib['href'])
+    text = br.response().read()
+    qq = PyQuery(text)
+
+    transLink = qq('div[name="recentTransactions"] ~ a[name="Wrapper_lnMoreInfo"]')
+    if len(transLink) == 0:
+        print('Unable to locate link to transactions page')
+        return None
+
+    link = transLink[0].attrib['href']
+    br.open(link)
     text = br.response().read()
 
     if 'New card number required' in text:
@@ -190,15 +208,20 @@ def export(csv):
 
     trans = []
 
+    #i = 1
     while True:
         text = br.response().read()
+
+        #with open('step%s.html' % i, 'w') as f:
+        #    f.write(text)
+        #i += 1
 
         q = PyQuery(text)
 
         page_trans = fetchTransactions(text)
         trans += page_trans
 
-        nextButton = q('a[name="nextButton"]')
+        nextButton = q('div[name="transactionsPagingLinks"] a[name="nextButton"]')
         isNextVisible = len(nextButton) != 0
         if not isNextVisible:
             break
@@ -208,7 +231,9 @@ def export(csv):
                                                       page_trans[0].date,
                                                       page_trans[-1].date))
         print('Opening next page...')
-        br.open(nextButton[0].attrib['href'])
+
+        next_url = nextButton[0].attrib['href']
+        br.open(next_url)
 
         #if len(trans) > 60:
         #    break
