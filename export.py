@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+import os
 from getpass import getpass
 import re
 from datetime import datetime
+import argparse
 
 from mechanize import Browser
 from pyquery import PyQuery
@@ -15,6 +17,7 @@ import db
 Transaction = namedtuple('Transaction',
                          ['date', 'payer', 'amount', 'memo', 'payee'])
 
+export_path = './export'
 
 def messages(before, after_ok, after_fail):
 
@@ -31,7 +34,7 @@ def messages(before, after_ok, after_fail):
 
 def get_credentials():
 
-    print('Enter your username and password: ')
+    print('Enter your username: ')
     lines = []
     lines.append(raw_input())
     lines.append(getpass())
@@ -51,9 +54,10 @@ WWW.THREADLESS.COM     XXXXXXXXXXX   IL
 def fetchTransactions(text):
 
     q = PyQuery(text)
+    qq = q
     trans = []
 
-    for row in q('tr[name="DataContainer"]'):
+    for row in q('div[name="transactionsHistory"] tr[name="DataContainer"]'):
 
         date = get_node_text(q('span[name="Transaction_TransactionDate"]', row)[0])
         payer = get_node_text(q('span[name="Transaction_CardName"]', row)[0])
@@ -83,18 +87,9 @@ def fetchTransactions(text):
 
 """See http://en.wikipedia.org/wiki/Quicken_Interchange_Format for more info."""
 @messages('Writing QIF file...', 'OK', '')
-def write_qif(trans):
+def write_qif(trans, file_name):
 
-    f_str = '%d/%m/%Y'
-    s_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) <
-                                                  datetime.strptime(t2.date, f_str) else t2,
-                                   trans).date, f_str)
-    e_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) >
-                                                  datetime.strptime(t2.date, f_str) else t2,
-                                   trans).date, f_str)
-
-    out_str = '%Y.%m.%d'
-    file_name = './export/%s-%s.qif' % (s_d.strftime(out_str), e_d.strftime(out_str))
+    print(file_name)
     with open(file_name, 'w') as f:
 
         # Write header
@@ -108,24 +103,15 @@ def write_qif(trans):
             print('C', file=f) # status - uncleared
             print('D' + t.date, file=f) # date
             print('T' + t.amount, file=f) # amount
-            print('M' + t.payer + ' ' + t.memo, file=f) # memo
-            print('P' + t.payee, file=f) # payee
+            print('M' + t.payer, file=f)
+            print('P' + t.payee + t.memo, file=f)
             print('^', file=f) # end of record
 
 
 @messages('Writing CSV file...', 'OK', '')
-def write_csv(trans):
+def write_csv(trans, file_name):
 
-    f_str = '%d/%m/%Y'
-    s_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) <
-                                                  datetime.strptime(t2.date, f_str) else t2,
-                                   trans).date, f_str)
-    e_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) >
-                                                  datetime.strptime(t2.date, f_str) else t2,
-                                   trans).date, f_str)
-
-    out_str = '%Y.%m.%d'
-    file_name = './export/%s-%s.csv' % (s_d.strftime(out_str), e_d.strftime(out_str))
+    print(file_name)
     with open(file_name, 'w') as f:
         print('Date,Amount,Payer,Payee', file=f)
         for t in trans:
@@ -155,7 +141,25 @@ def login(creds):
 @messages('Opening transactions page...', 'OK', 'Exiting...')
 def open_transactions_page(br):
 
-    br.open('https://28degrees-online.gemoney.com.au/wps/myportal/ge28degrees/public/account/transactions/')
+    text = br.response().read()
+    qq = PyQuery(text)
+
+    portalLink = qq('a')
+    if len(portalLink) == 0:
+        print('Unable to locate link to main page')
+        return None
+
+    br.open(portalLink[0].attrib['href'])
+    text = br.response().read()
+    qq = PyQuery(text)
+
+    transLink = qq('div[name="recentTransactions"] ~ a[name="Wrapper_lnMoreInfo"]')
+    if len(transLink) == 0:
+        print('Unable to locate link to transactions page')
+        return None
+
+    link = transLink[0].attrib['href']
+    br.open(link)
     text = br.response().read()
 
     if 'New card number required' in text:
@@ -180,7 +184,10 @@ def open_transactions_page(br):
     return br
 
 
-def export():
+def export(csv):
+
+    if not os.path.exists(export_path):
+        os.makedirs(export_path)
 
     t_db = db.init_db()
     if not t_db:
@@ -201,15 +208,20 @@ def export():
 
     trans = []
 
+    #i = 1
     while True:
         text = br.response().read()
+
+        #with open('step%s.html' % i, 'w') as f:
+        #    f.write(text)
+        #i += 1
 
         q = PyQuery(text)
 
         page_trans = fetchTransactions(text)
         trans += page_trans
 
-        nextButton = q('a[name="nextButton"]')
+        nextButton = q('div[name="transactionsPagingLinks"] a[name="nextButton"]')
         isNextVisible = len(nextButton) != 0
         if not isNextVisible:
             break
@@ -219,21 +231,42 @@ def export():
                                                       page_trans[0].date,
                                                       page_trans[-1].date))
         print('Opening next page...')
-        br.open(nextButton[0].attrib['href'])
 
-        #if len(trans) > 50:
+        next_url = nextButton[0].attrib['href']
+        br.open(next_url)
+
+        #if len(trans) > 60:
         #    break
 
     new_trans = db.get_only_new_transactions(trans)
     print('Total of %s new transactions obtained' % len(new_trans))
 
     if len(new_trans) != 0:
+
         print('Saving transactions...')
         db.save_transactions(new_trans)
 
-        write_qif(new_trans)
-        write_csv(new_trans)
+        f_str = '%d/%m/%Y'
+        s_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) <
+                                                      datetime.strptime(t2.date, f_str) else t2,
+                                       new_trans).date, f_str)
+        e_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) >
+                                                      datetime.strptime(t2.date, f_str) else t2,
+                                       new_trans).date, f_str)
+        out_str = '%Y.%m.%d'
+
+        if csv:
+            file_name = os.path.join(export_path, '%s-%s.csv' % (s_d.strftime(out_str), e_d.strftime(out_str)))
+            write_csv(new_trans, file_name)
+        else:
+            file_name = os.path.join(export_path, '%s-%s.qif' % (s_d.strftime(out_str), e_d.strftime(out_str)))
+            write_qif(new_trans, file_name)
 
 
 if __name__ == "__main__":
-    export()
+    parser = argparse.ArgumentParser("""I load transactions from 28degrees-online.gemoney.com.au.
+If no arguments specified, I will produce a nice QIF file for you
+To get CSV, specify run me with --csv parameter""")
+    parser.add_argument('--csv', action='store_true')
+    args = parser.parse_args()
+    export(**vars(args))
