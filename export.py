@@ -153,7 +153,7 @@ def open_transactions_page(br):
     text = br.response().read()
     qq = PyQuery(text)
 
-    transLink = qq('div[name="recentTransactions"] ~ a[name="Wrapper_lnMoreInfo"]')
+    transLink = qq('#home-transactions-desktop #view-all-transactions-link')
     if len(transLink) == 0:
         print('Unable to locate link to transactions page')
         return None
