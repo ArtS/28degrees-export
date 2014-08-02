@@ -3,6 +3,7 @@ import sqlite3
 from datetime import datetime
 import time
 
+from dateutil import format_tran_date_for_db
 
 db = None
 
@@ -32,7 +33,7 @@ def save_transaction(t):
     global db
     db.execute('insert into transactions (date, payer, amount, memo, payee) values (?, ?, ?, ?, ?)',
                (
-                t.date,
+                format_tran_date_for_db(t.date),
                 t.payer,
                 t.amount,
                 t.memo,
@@ -69,7 +70,7 @@ def is_transaction_in_db(t):
                         and memo = ?
                         and payee = ?
                      ''',
-                     (t.date,
+                     (format_tran_date_for_db(t.date),
                       t.payer,
                       t.amount,
                       t.memo,

@@ -12,6 +12,8 @@ from pyquery import PyQuery
 from collections import namedtuple
 
 import db
+from dateutil import format_tran_date_for_file, format_tran_date_for_qif,\
+                     parse_tran_date
 
 
 Transaction = namedtuple('Transaction',
@@ -59,10 +61,10 @@ def fetchTransactions(text):
 
     for row in q('div[name="transactionsHistory"] tr[name="DataContainer"]'):
 
-        date = get_node_text(q('span[name="Transaction_TransactionDate"]', row)[0])
-        payer = get_node_text(q('span[name="Transaction_CardName"]', row)[0])
-        desc_payee = get_node_text(q('span[name="Transaction_TransactionDescription"]', row)[0])
-        amount = get_node_text(q('span[name="Transaction_Amount"]', row)[0])
+        date = parse_tran_date(get_node_text(q('div[name="Transaction_TransactionDate"]', row)[0]))
+        payer = get_node_text(q('div[name="Transaction_CardName"]', row)[0])
+        desc_payee = get_node_text(q('div[name="Transaction_TransactionDescription"]', row)[0])
+        amount = get_node_text(q('div[name="Transaction_Amount"]', row)[0])
 
         if len(desc_payee) >= 23:
             payee = desc_payee[:23]
@@ -101,7 +103,7 @@ def write_qif(trans, file_name):
 
         for t in trans:
             print('C', file=f) # status - uncleared
-            print('D' + t.date, file=f) # date
+            print('D' + format_tran_date_for_qif(t.date), file=f) # date
             print('T' + t.amount, file=f) # amount
             print('M' + t.payer, file=f)
             print('P' + t.payee + t.memo, file=f)
@@ -115,7 +117,7 @@ def write_csv(trans, file_name):
     with open(file_name, 'w') as f:
         print('Date,Amount,Payer,Payee', file=f)
         for t in trans:
-            print('"%s","%s","%s","%s"' % (t.date, t.amount, t.payer, t.payee), file=f)
+            print('"%s","%s","%s","%s"' % (format_tran_date_for_qif(t.date), t.amount, t.payer, t.payee), file=f)
 
 
 @messages('Logging in...', 'OK', 'Login failed')
@@ -143,6 +145,7 @@ def open_transactions_page(br):
 
     text = br.response().read()
     qq = PyQuery(text)
+    #log_file('1st-tran.html', text)
 
     portalLink = qq('a')
     if len(portalLink) == 0:
@@ -152,15 +155,12 @@ def open_transactions_page(br):
     br.open(portalLink[0].attrib['href'])
     text = br.response().read()
     qq = PyQuery(text)
+    #log_file('2nd-tran.html', text)
 
-    transLink = qq('#home-transactions-desktop #view-all-transactions-link')
-    if len(transLink) == 0:
-        print('Unable to locate link to transactions page')
+    if 'To continue, please provide the answer to your secret question' in text:
+        print('28degrees site requires you to validate this computer first.')
+        print('Please log into the website from your browser on this computer and answer verification question when prompted.')
         return None
-
-    link = transLink[0].attrib['href']
-    br.open(link)
-    text = br.response().read()
 
     if 'New card number required' in text:
         q = PyQuery(text)
@@ -183,6 +183,10 @@ def open_transactions_page(br):
 
     return br
 
+def log_file(name, text):
+    with open(name, 'w') as f:
+        f.write(text)
+
 
 def export(csv):
 
@@ -202,18 +206,20 @@ def export(csv):
     if not br:
         return
 
+    text = br.response().read()
+    #log_file('login.html', text)
+
     br = open_transactions_page(br)
     if not br:
         return
 
     trans = []
 
-    #i = 1
+    i = 1
     while True:
         text = br.response().read()
 
-        #with open('step%s.html' % i, 'w') as f:
-        #    f.write(text)
+        #log_file('step%s.html' % i, text)
         #i += 1
 
         q = PyQuery(text)
@@ -228,8 +234,8 @@ def export(csv):
 
         page_count = len(page_trans)
         print('Got %s transactions, from %s to %s' % (page_count,
-                                                      page_trans[0].date,
-                                                      page_trans[-1].date))
+                                                      format_tran_date_for_qif(page_trans[0].date),
+                                                      format_tran_date_for_qif(page_trans[-1].date)))
         print('Opening next page...')
 
         next_url = nextButton[0].attrib['href']
@@ -246,20 +252,14 @@ def export(csv):
         print('Saving transactions...')
         db.save_transactions(new_trans)
 
-        f_str = '%d/%m/%Y'
-        s_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) <
-                                                      datetime.strptime(t2.date, f_str) else t2,
-                                       new_trans).date, f_str)
-        e_d = datetime.strptime(reduce(lambda t1, t2: t1 if datetime.strptime(t1.date, f_str) >
-                                                      datetime.strptime(t2.date, f_str) else t2,
-                                       new_trans).date, f_str)
-        out_str = '%Y.%m.%d'
+        s_d = reduce(lambda t1, t2: t1 if t1.date < t2.date else t2, new_trans).date
+        e_d = reduce(lambda t1, t2: t1 if t1.date > t2.date else t2, new_trans).date
 
         if csv:
-            file_name = os.path.join(export_path, '%s-%s.csv' % (s_d.strftime(out_str), e_d.strftime(out_str)))
+            file_name = os.path.join(export_path, '%s-%s.csv' % (format_tran_date_for_file(s_d), format_tran_date_for_file(e_d)))
             write_csv(new_trans, file_name)
         else:
-            file_name = os.path.join(export_path, '%s-%s.qif' % (s_d.strftime(out_str), e_d.strftime(out_str)))
+            file_name = os.path.join(export_path, '%s-%s.qif' % (format_tran_date_for_file(s_d), format_tran_date_for_file(e_d)))
             write_qif(new_trans, file_name)
 
 
