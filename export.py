@@ -188,6 +188,20 @@ def log_file(name, text):
         f.write(text)
 
 
+def get_file_name(export_path, s_d, e_d, extension):
+    i = 0
+    while True:
+        f_n = os.path.join(export_path, '%s-%s%s.%s' %
+                           (format_tran_date_for_file(s_d),
+                            format_tran_date_for_file(e_d),
+                            '' if i == 0 else '-%s' % i,
+                            extension))
+        if not os.path.exists(f_n):
+            return f_n
+
+        i += 1
+
+
 def export(csv):
 
     if not os.path.exists(export_path):
@@ -256,10 +270,10 @@ def export(csv):
         e_d = reduce(lambda t1, t2: t1 if t1.date > t2.date else t2, new_trans).date
 
         if csv:
-            file_name = os.path.join(export_path, '%s-%s.csv' % (format_tran_date_for_file(s_d), format_tran_date_for_file(e_d)))
+            file_name = get_file_name(export_path, s_d, e_d, 'csv')
             write_csv(new_trans, file_name)
         else:
-            file_name = os.path.join(export_path, '%s-%s.qif' % (format_tran_date_for_file(s_d), format_tran_date_for_file(e_d)))
+            file_name = get_file_name(export_path, s_d, e_d, 'qif')
             write_qif(new_trans, file_name)
 
 
