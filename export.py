@@ -247,6 +247,9 @@ def export(csv):
             break
 
         page_count = len(page_trans)
+        if page_count == 0:
+            break;
+
         print('Got %s transactions, from %s to %s' % (page_count,
                                                       format_tran_date_for_qif(page_trans[0].date),
                                                       format_tran_date_for_qif(page_trans[-1].date)))
