@@ -6,6 +6,7 @@ from getpass import getpass
 import re
 from datetime import datetime
 import argparse
+import codecs
 
 from mechanize import Browser
 from pyquery import PyQuery
@@ -92,7 +93,7 @@ def fetchTransactions(text):
 def write_qif(trans, file_name):
 
     print(file_name)
-    with open(file_name, 'w') as f:
+    with codecs.open(file_name, 'w', encoding='utf-8') as f:
 
         # Write header
         print('!Account', file=f)
@@ -114,7 +115,7 @@ def write_qif(trans, file_name):
 def write_csv(trans, file_name):
 
     print(file_name)
-    with open(file_name, 'w') as f:
+    with codecs.open(file_name, 'w', encoding='utf-8') as f:
         print('Date,Amount,Payer,Payee', file=f)
         for t in trans:
             print('"%s","%s","%s","%s"' % (format_tran_date_for_qif(t.date), t.amount, t.payer, t.payee), file=f)
