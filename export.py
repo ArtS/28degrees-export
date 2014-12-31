@@ -184,6 +184,15 @@ def open_transactions_page(br):
 
     return br
 
+
+@messages('Opening statements page...', 'OK', 'Exiting...')
+def open_statements_page(br):
+    br.set_handle_robots(False)
+    br.open('https://28degrees-online.gemoney.com.au/wps/myportal/ge28degrees/public/statements/viewstatements/')
+
+    return br
+
+
 def log_file(name, text):
     with open(name, 'w') as f:
         f.write(text)
@@ -203,7 +212,7 @@ def get_file_name(export_path, s_d, e_d, extension):
         i += 1
 
 
-def export(csv):
+def export(csv, statements):
 
     if not os.path.exists(export_path):
         os.makedirs(export_path)
@@ -280,11 +289,29 @@ def export(csv):
             file_name = get_file_name(export_path, s_d, e_d, 'qif')
             write_qif(new_trans, file_name)
 
+    if statements:
+        br = open_statements_page(br)
+        if not br:
+            return
+
+        text = br.response().read()
+        q = PyQuery(text)
+
+        for row in q('a[class="s_downloads"]'):
+            statement_date = datetime.strptime(row.text, '%d %b %Y').strftime('%Y-%m-%d')
+            statement_name = '28 Degrees Statement ' + statement_date + '.pdf'
+            statement_path = os.path.join(export_path, statement_name)
+
+            if not os.path.exists(statement_path):
+                print('Retrieving statement ' + row.text + ' and saving to ' + statement_path)
+                br.retrieve(row.attrib['href'], statement_path)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("""I load transactions from 28degrees-online.gemoney.com.au.
 If no arguments specified, I will produce a nice QIF file for you
 To get CSV, specify run me with --csv parameter""")
     parser.add_argument('--csv', action='store_true')
+    parser.add_argument('--statements', action='store_true', default=False)
     args = parser.parse_args()
     export(**vars(args))
