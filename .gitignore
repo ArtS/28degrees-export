@@ -1,7 +1,7 @@
 .credentials
 export.qif
 export
-db.pyc
+*.pyc
 2013.07.06-2013.07.24.qif
 transactions.db
 .DS_Store
