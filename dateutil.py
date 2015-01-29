@@ -1,7 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def parse_tran_date(dateStr):
+    if dateStr.lower() == 'yesterday':
+        diffDate = datetime.now() - timedelta(days=1)
+        return datetime.combine(diffDate.date(), datetime.min.time())
+
     f_str = '%d %b %Y'
     return datetime.strptime(dateStr, f_str)
 
