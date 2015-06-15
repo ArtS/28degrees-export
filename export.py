@@ -57,7 +57,6 @@ WWW.THREADLESS.COM     XXXXXXXXXXX   IL
 def fetchTransactions(text):
 
     q = PyQuery(text)
-    qq = q
     trans = []
 
     for row in q('div[name="transactionsHistory"] tr[name="DataContainer"]'):
@@ -163,7 +162,7 @@ def open_transactions_page(br):
         print('Please log into the website from your browser on this computer and answer verification question when prompted.')
         return None
 
-    if 'New card number required' in text:
+    if 'Have you received your new card?' in text:
         q = PyQuery(text)
         cancel_btn = q('input[name="cancelButton"]')
 
@@ -171,15 +170,13 @@ def open_transactions_page(br):
             print('No cancel button found on "New card required" page')
             return None
 
-        cancel_btn = cancel_btn[0]
-        matches = re.match('location\.href="(.*)"', cancel_btn.attrib['onclick'])
-
-        if len(matches.groups()) == 0:
-            print('No onclick event in cancel button found')
+        cancel_link = cancel_btn[0].getparent().find('a')
+        if cancel_link == None:
+            print('No cancel link found.')
             return None
 
         # Cancel new card number submission
-        br.open('https://28degrees-online.gemoney.com.au' + matches.groups()[0])
+        br.open('https://28degrees-online.gemoney.com.au' + cancel_link.attrib['href'])
         br.open('https://28degrees-online.gemoney.com.au/wps/myportal/ge28degrees/public/account/transactions/')
 
     return br
