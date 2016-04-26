@@ -125,8 +125,9 @@ def login(creds):
 
     br = Browser()
 
-    br.open('https://28degrees-online.gemoney.com.au/')
-    br.open('https://28degrees-online.gemoney.com.au/access/login')
+    br.set_handle_robots(False)
+    br.open('https://28degrees-online.latitudefinancial.com.au/')
+    br.open('https://28degrees-online.latitudefinancial.com.au/access/login')
 
     br.select_form(nr=0)
     br.form['USER'] = creds[0]
