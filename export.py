@@ -8,6 +8,7 @@ from datetime import datetime
 import argparse
 import codecs
 
+import mechanize
 from mechanize import Browser
 from pyquery import PyQuery
 from collections import namedtuple
@@ -125,11 +126,32 @@ def login(creds):
 
     br = Browser()
 
+    br.set_handle_equiv(True)
+    br.set_handle_gzip(True)
+    br.set_handle_redirect(True)
+    br.set_handle_referer(True)
     br.set_handle_robots(False)
-    br.open('https://28degrees-online.latitudefinancial.com.au/')
+
+    #br.set_debug_http(True)
+    #br.set_debug_redirects(True)
+    #br.set_debug_responses(True)
+    br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
+
+    br.addheaders = [('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'),
+                     ('Referer', 'https://www.28degreescard.com.au/'),
+                     ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8')]
+
     br.open('https://28degrees-online.latitudefinancial.com.au/access/login')
+    text = br.response().read()
+
+    br.open('https://28degrees-online.latitudefinancial.com.au/wps/myportal/28degrees')
+    text = br.response().read()
+
+    br.open('https://28degrees-online.latitudefinancial.com.au/access/login')
+    text = br.response().read()
 
     br.select_form(nr=0)
+    text = br.response().read()
     br.form['USER'] = creds[0]
     br.form['PASSWORD'] = creds[1]
     br.submit()
@@ -148,12 +170,12 @@ def open_transactions_page(br):
     qq = PyQuery(text)
     #log_file('1st-tran.html', text)
 
-    portalLink = qq('a')
-    if len(portalLink) == 0:
-        print('Unable to locate link to main page')
+    transLink = qq('li[id="mobile.cardsonline.account.transactions"] a')
+    if len(transLink) == 0:
+        print('Unable to locate link to all transactions page')
         return None
 
-    br.open(portalLink[0].attrib['href'])
+    br.open(transLink[0].attrib['href'])
     text = br.response().read()
     qq = PyQuery(text)
     #log_file('2nd-tran.html', text)
