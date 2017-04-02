@@ -205,14 +205,6 @@ def open_transactions_page(br):
     return br
 
 
-@messages('Opening statements page...', 'OK', 'Exiting...')
-def open_statements_page(br):
-    br.set_handle_robots(False)
-    br.open('https://28degrees-online.gemoney.com.au/wps/myportal/ge28degrees/public/statements/viewstatements/')
-
-    return br
-
-
 def log_file(name, text):
     with open(name, 'w') as f:
         f.write(text)
@@ -251,6 +243,8 @@ def export(csv, statements):
         return
 
     text = br.response().read()
+    qq = PyQuery(text)
+    statLink = qq('li[id="cardsonline.statements"] a')
     #log_file('login.html', text)
 
     br = open_transactions_page(br)
@@ -310,10 +304,12 @@ def export(csv, statements):
             write_qif(new_trans, file_name)
 
     if statements:
-        br = open_statements_page(br)
-        if not br:
+
+        if len(statLink) == 0:
+            print('Unable to find link to statements page')
             return
 
+        br.open(statLink[0].attrib['href'])
         text = br.response().read()
         q = PyQuery(text)
 
