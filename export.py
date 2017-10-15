@@ -7,11 +7,13 @@ import re
 from datetime import datetime
 import argparse
 import codecs
+import time
 
 import mechanize
 from mechanize import Browser
 from pyquery import PyQuery
 from collections import namedtuple
+from urllib2 import HTTPError
 
 import db
 from dateutil import format_tran_date_for_file, format_tran_date_for_qif,\
@@ -132,16 +134,21 @@ def login(creds):
     br.set_handle_referer(True)
     br.set_handle_robots(False)
 
-    #br.set_debug_http(True)
-    #br.set_debug_redirects(True)
+    br.set_debug_http(True)
+    br.set_debug_redirects(True)
     #br.set_debug_responses(True)
     br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
 
-    br.addheaders = [('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'),
-                     ('Referer', 'https://www.28degreescard.com.au/'),
-                     ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8')]
+    br.addheaders = [\
+        ('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:55.0) Gecko/20100101 Firefox/55.0'),
+        ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
+        ('Accept-Language', 'en-AU'),\
+#                     ('Accept-Encoding', 'gzip, deflate, br'),
+#                     ('DNT', '1'),
+#                     ('Upgrade-Insecure-Requests', '1')
+                    ]
 
-    br.open('https://28degrees-online.latitudefinancial.com.au/access/login')
+    br.open('https://28degrees-online.latitudefinancial.com.au/')
     text = br.response().read()
 
     br.open('https://28degrees-online.latitudefinancial.com.au/wps/myportal/28degrees')
@@ -149,14 +156,47 @@ def login(creds):
 
     br.open('https://28degrees-online.latitudefinancial.com.au/access/login')
     text = br.response().read()
+    log_file('pre-login.html', text)
 
     br.select_form(nr=0)
     text = br.response().read()
+    log_file('form-selected.html', text)
+
     br.form['USER'] = creds[0]
     br.form['PASSWORD'] = creds[1]
-    br.submit()
+    br.form.find_control('SUBMIT').disabled = True
 
+    time.sleep(10)
+
+    br.set_handle_referer(False)
+    br.addheaders = [
+        ('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:55.0) Gecko/20100101 Firefox/55.0'),
+        ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
+        ('Accept-Language', 'en-AU'),
+        ('Origin','https://28degrees-online.latitudefinancial.com.au'),
+        ('Referer', 'https://28degrees-online.latitudefinancial.com.au/access/login')
+    ]
+    br.set_handle_redirect(False)
+    try:
+        br.submit()
+    except HTTPError, err:
+        if err.code != 302:
+            raise
+
+    br.set_handle_referer(True)
+    br.set_handle_redirect(True)
+
+    br.open('https://28degrees-online.latitudefinancial.com.au/wps/myportal/28degrees')
+    br.addheaders = [
+        ('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:55.0) Gecko/20100101 Firefox/55.0'),
+        ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
+        ('Accept-Language', 'en-AU'),
+        ('Origin', ''),
+        ('Referer', 'https://28degrees-online.latitudefinancial.com.au/access/login')
+    ]
     text = br.response().read()
+
+    log_file('post-login.html', text)
     if "window.location = '/access/login';" in text:
         return None
 
@@ -168,9 +208,10 @@ def open_transactions_page(br):
 
     text = br.response().read()
     qq = PyQuery(text)
-    #log_file('1st-tran.html', text)
+    log_file('1st-tran.html', text)
 
-    transLink = qq('li[id="mobile.cardsonline.account.transactions"] a')
+    #transLink = qq('li[id="mobile.cardsonline.account.transactions"] a')
+    transLink = qq('a:contains("View Transactions")')
     if len(transLink) == 0:
         print('Unable to locate link to all transactions page')
         return None
