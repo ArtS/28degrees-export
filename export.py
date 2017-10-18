@@ -122,6 +122,11 @@ def write_csv(trans, file_name):
         for t in trans:
             print('"%s","%s","%s","%s"' % (format_tran_date_for_qif(t.date), t.amount, t.payer, t.payee), file=f)
 
+def print_cookies(br):
+    cj = br._ua_handlers['_cookies'].cookiejar
+    for cookie in cj:
+        print('%s : %s : %s' % (cookie.name, cookie.value, cookie.path))
+
 
 @messages('Logging in...', 'OK', 'Login failed')
 def login(creds):
@@ -136,30 +141,34 @@ def login(creds):
 
     br.set_debug_http(True)
     br.set_debug_redirects(True)
-    #br.set_debug_responses(True)
+    br.set_debug_responses(True)
     br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
 
     br.addheaders = [\
-        ('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:55.0) Gecko/20100101 Firefox/55.0'),
-        ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
-        ('Accept-Language', 'en-AU'),\
-#                     ('Accept-Encoding', 'gzip, deflate, br'),
-#                     ('DNT', '1'),
-#                     ('Upgrade-Insecure-Requests', '1')
-                    ]
+        ('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'),
+        ('Upgrade-Insecure-Requests', '1'),
+        ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'),
+        ('Accept-Encoding', 'gzip, deflate, br'),
+        ('Accept-Language', 'en-US,en;q=0.8,ru;q=0.6')
+    ]
 
     br.open('https://28degrees-online.latitudefinancial.com.au/')
     text = br.response().read()
+    print_cookies(br)
 
-    br.open('https://28degrees-online.latitudefinancial.com.au/wps/myportal/28degrees')
-    text = br.response().read()
+    return
+
+    #br.open('https://28degrees-online.latitudefinancial.com.au/wps/myportal/28degrees')
+    #text = br.response().read()
 
     br.open('https://28degrees-online.latitudefinancial.com.au/access/login')
     text = br.response().read()
+    print_cookies(br)
     log_file('pre-login.html', text)
 
     br.select_form(nr=0)
     text = br.response().read()
+    print_cookies(br)
     log_file('form-selected.html', text)
 
     br.form['USER'] = creds[0]
@@ -168,7 +177,7 @@ def login(creds):
 
     time.sleep(10)
 
-    br.set_handle_referer(False)
+    """br.set_handle_referer(True)
     br.addheaders = [
         ('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:55.0) Gecko/20100101 Firefox/55.0'),
         ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
@@ -176,27 +185,31 @@ def login(creds):
         ('Origin','https://28degrees-online.latitudefinancial.com.au'),
         ('Referer', 'https://28degrees-online.latitudefinancial.com.au/access/login')
     ]
-    br.set_handle_redirect(False)
-    try:
-        br.submit()
-    except HTTPError, err:
-        if err.code != 302:
-            raise
+    br.set_handle_redirect(False)"""
+    #try:
+    br.submit()
+    text = br.response().read()
+    log_file('post-login-form.html', text)
 
-    br.set_handle_referer(True)
-    br.set_handle_redirect(True)
+    #except HTTPError, err:
+    #    if err.code != 302:
+    #        raise
 
+    #br.set_handle_referer(True)
+    #br.set_handle_redirect(True)
+
+    # JS redirect
     br.open('https://28degrees-online.latitudefinancial.com.au/wps/myportal/28degrees')
-    br.addheaders = [
+    """br.addheaders = [
         ('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:55.0) Gecko/20100101 Firefox/55.0'),
         ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
         ('Accept-Language', 'en-AU'),
         ('Origin', ''),
         ('Referer', 'https://28degrees-online.latitudefinancial.com.au/access/login')
-    ]
+    ]"""
     text = br.response().read()
 
-    log_file('post-login.html', text)
+    log_file('post-login-redirect.html', text)
     if "window.location = '/access/login';" in text:
         return None
 

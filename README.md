@@ -1,3 +1,8 @@
+
+`brew install chromedriver`
+`pip install selenium`
+
+
 # Export to QIF/CSV from 28degrees Master Card website
 
 
