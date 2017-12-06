@@ -1,8 +1,4 @@
 
-`brew install chromedriver`
-`pip install selenium`
-
-
 # Export to QIF/CSV from 28degrees Master Card website
 
 
@@ -17,10 +13,14 @@ saving them into QIF file.
 
 You will need some things for this tool to work:
 
-    1. Python
-    2. Mechanize
-    3. PyQuery
-    4. Git
+1. Python
+1. WebDriver
+1. Selenium
+
+On OS X, you can use `brew` to install N 2 & 3 by:
+
+    `brew install chromedriver`
+    `pip install selenium`
 
 As installation instructions for the things above vary for different platforms,
 I assume you know how install them, otherwise please let me know and I'll
