@@ -63,6 +63,7 @@ def get_next_btn(browser):
 def login(creds):
 
     driver = webdriver.Chrome()
+    driver.implicitly_wait(10) # seconds
     driver.get(BASE_URL)
 
     user = driver.find_element_by_name('USER')
