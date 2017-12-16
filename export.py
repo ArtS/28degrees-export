@@ -21,10 +21,8 @@ from dateutil import format_tran_date_for_file, format_tran_date_for_qif,\
                      parse_tran_date
 
 random.seed()
-BASE_URL = 'https://28degrees-online.latitudefinancial.com.au/';
 Transaction = namedtuple('Transaction',
                          ['date', 'payer', 'amount', 'memo', 'payee'])
-export_path = './export'
 
 
 def messages(before, after_ok, after_fail):
@@ -63,6 +61,7 @@ def get_next_btn(browser):
 def login(creds):
 
     driver = webdriver.Chrome()
+    driver.implicitly_wait(10) # seconds
     driver.get(BASE_URL)
 
     user = driver.find_element_by_name('USER')
@@ -74,8 +73,6 @@ def login(creds):
 
     tranLink = driver.find_element_by_link_text('View Transactions')
     tranLink.click()
-
-    nextBtn = get_next_btn(driver)
 
     return driver
 
@@ -166,7 +163,7 @@ def export(csv, statements):
     if not os.path.exists(export_path):
         os.makedirs(export_path)
 
-    t_db = db.init_db()
+    t_db = db.init_db(export_path + "/transactions.db")
     if not t_db:
         print('Error initialising database')
         return
@@ -237,6 +234,19 @@ def export(csv, statements):
                 print('Retrieving statement ' + row.text + ' and saving to ' + statement_path)
                 br.retrieve(row.attrib['href'], statement_path)
 
+print("What target site? (28d | coles)? ")
+targetSite = raw_input()
+
+if targetSite == "28d":
+	BASE_URL = 'https://28degrees-online.latitudefinancial.com.au/';
+	export_path = './export-28d'
+elif targetSite == "coles":
+	BASE_URL = 'https://online.colesmastercard.com.au/';
+	export_path = './export-coles'
+else:
+	quit()
+
+print("Using: " + BASE_URL + " and writing to: " + export_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("""I load transactions from 28degrees-online.gemoney.com.au.
