@@ -72,7 +72,9 @@ def login(creds):
     btn = driver.find_element_by_name('SUBMIT')
     btn.click()
 
-    tranLink = driver.find_element_by_link_text('View Transactions')
+    time.sleep(2);
+    tranLink = driver.find_element_by_xpath(u'//a[text()="View Transactions"]')
+    #tranLink = driver.find_element_by_link_text('View Transactions')
     tranLink.click()
 
     nextBtn = get_next_btn(driver)
