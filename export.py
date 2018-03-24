@@ -65,12 +65,16 @@ def login(creds):
     driver = webdriver.Chrome()
     driver.get(BASE_URL)
 
+    time.sleep(2);
+
     user = driver.find_element_by_name('USER')
     user.send_keys(creds[0])
     user = driver.find_element_by_name('PASSWORD')
     user.send_keys(creds[1])
     btn = driver.find_element_by_name('SUBMIT')
     btn.click()
+
+    time.sleep(4);
 
     tranLink = driver.find_element_by_link_text('View Transactions')
     tranLink.click()
