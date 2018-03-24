@@ -76,7 +76,8 @@ def login(creds):
 
     time.sleep(4);
 
-    tranLink = driver.find_element_by_link_text('View Transactions')
+    tranLink = driver.find_element_by_xpath(u'//a[text()="View Transactions"]')
+    #tranLink = driver.find_element_by_link_text('View Transactions')
     tranLink.click()
 
     nextBtn = get_next_btn(driver)
