@@ -8,10 +8,10 @@ from dateutil import format_tran_date_for_db
 db = None
 
 
-def init_db():
+def init_db(path):
 
     global db
-    db = sqlite3.connect('./export/transactions.db')
+    db = sqlite3.connect(path)
     db.execute('''
         create table if not exists transactions
               (
