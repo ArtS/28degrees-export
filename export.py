@@ -22,6 +22,8 @@ from dateutil import format_tran_date_for_file, format_tran_date_for_qif,\
 
 random.seed()
 BASE_URL = 'https://28degrees-online.latitudefinancial.com.au/';
+WAIT_DELAY = 3
+
 Transaction = namedtuple('Transaction',
                          ['date', 'payer', 'amount', 'memo', 'payee'])
 export_path = './export'
@@ -42,18 +44,12 @@ def messages(before, after_ok, after_fail):
 
 def get_credentials():
 
-    print('Enter your username: ')
+    print('Enter your username:')
     lines = []
     lines.append(raw_input())
     lines.append(getpass())
 
     return lines
-
-
-def user_delay():
-    delay = random.randrange(10, 15, 1)
-    print('Sleeping for %d' % delay)
-    time.sleep(delay)
 
 
 def get_next_btn(browser):
@@ -65,7 +61,7 @@ def login(creds):
     driver = webdriver.Chrome()
     driver.get(BASE_URL)
 
-    time.sleep(2);
+    time.sleep(WAIT_DELAY)
 
     user = driver.find_element_by_name('USER')
     user.send_keys(creds[0])
@@ -74,10 +70,9 @@ def login(creds):
     btn = driver.find_element_by_name('SUBMIT')
     btn.click()
 
-    time.sleep(4);
+    time.sleep(WAIT_DELAY)
 
     tranLink = driver.find_element_by_xpath(u'//a[text()="View Transactions"]')
-    #tranLink = driver.find_element_by_link_text('View Transactions')
     tranLink.click()
 
     nextBtn = get_next_btn(driver)
@@ -166,7 +161,11 @@ def get_file_name(export_path, s_d, e_d, extension):
         i += 1
 
 
-def export(csv, statements):
+def export(csv, slow):
+
+    print('Use "export.py --help" to see all command line options')
+    if slow:
+        WAIT_DELAY = 15
 
     if not os.path.exists(export_path):
         os.makedirs(export_path)
@@ -201,7 +200,7 @@ def export(csv, statements):
             if not nextButton.is_displayed():
                 break
             nextButton.click()
-            time.sleep(2);
+            time.sleep(WAIT_DELAY);
         except NoSuchElementException, err:
             break
 
@@ -223,6 +222,7 @@ def export(csv, statements):
             file_name = get_file_name(export_path, s_d, e_d, 'qif')
             write_qif(new_trans, file_name)
 
+    """
     if statements:
 
         if len(statLink) == 0:
@@ -242,12 +242,14 @@ def export(csv, statements):
                 print('Retrieving statement ' + row.text + ' and saving to ' + statement_path)
                 br.retrieve(row.attrib['href'], statement_path)
 
+    """
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("""I load transactions from 28degrees-online.gemoney.com.au.
 If no arguments specified, I will produce a nice QIF file for you
 To get CSV, specify run me with --csv parameter""")
-    parser.add_argument('--csv', action='store_true')
-    parser.add_argument('--statements', action='store_true', default=False)
+    parser.add_argument('--csv', action='store_true', help='Write CSV instead of QIF')
+    parser.add_argument('--slow', action='store_true', help='Increase wait delay between actions. Use on slow internet connections or when 28degrees is acting up.')
+    #parser.add_argument('--statements', action='store_true', default=False)
     args = parser.parse_args()
     export(**vars(args))
