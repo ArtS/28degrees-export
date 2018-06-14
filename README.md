@@ -32,6 +32,10 @@ Simply start `export.py` in your shell of choice (cmd.exe, bash, zsh etc).
 You will be prompted for your username & password. **THESE details will not be
 used for anything but logging into the 28degrees' website.**
 
+If your Internet connection is slow (because Australia), or 28degrees site is being particularly 
+slow today, and you see errors/exceptions in the console, use `--slow` command line parameter, which
+will increase connection timeout to 25 seconds. I know right, we're not here to fuck spiders.
+
 Then the tool will go through several stages, printing some supplementary information
 into console. Do not worry about that unless these are actually error
 messages.
@@ -43,14 +47,6 @@ you can ignore this one - we simply need it to keep track of transactions that h
 been recorded.
 
 If you want to re-start the process, just delete (or re-name, which is safer) transactions.db file.
-
-Should you want a copy of all the statements on the website, add the `--statements` argument
-when calling `export.py` and a PDF copy of each available statement will be saved after the
-transactions process is complete. Statements will be saved as `28 Degrees Statement YYYY-MM-DD.pdf`
-to the 'export' folder. After `export.py` has finished running you can safely copy the
-files from the 'export' folder. However if you *move* the files subsequent runs of
-`export.py` will result in the downloading of each statement again as the check to download
-missing statements is based on the existence of PDFs in the 'export' folder.
 
 ## Errors / support
 

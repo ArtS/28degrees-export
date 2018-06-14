@@ -165,7 +165,7 @@ def export(csv, slow):
 
     print('Use "export.py --help" to see all command line options')
     if slow:
-        WAIT_DELAY = 15
+        WAIT_DELAY = 25
 
     if not os.path.exists(export_path):
         os.makedirs(export_path)
