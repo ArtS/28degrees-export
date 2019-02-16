@@ -76,7 +76,7 @@ def login(creds):
     tranLink.click()
 
     # Check we're logged in
-    testHeader = browser.find_element_by_name('Header2Text')
+    testHeader = driver.find_element_by_name('Header2Text')
     if not testHeader:
       return None
 
