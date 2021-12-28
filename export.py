@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 import os
@@ -10,6 +10,7 @@ import codecs
 import time
 import random
 from collections import namedtuple
+from functools import reduce
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -23,6 +24,7 @@ from dateutil import format_tran_date_for_file, format_tran_date_for_qif,\
 random.seed()
 BASE_URL = 'https://28degrees-online.latitudefinancial.com.au/';
 WAIT_DELAY = 3
+LOGIN_DELAY = 3
 
 Transaction = namedtuple('Transaction',
                          ['date', 'payer', 'amount', 'memo', 'payee'])
@@ -46,33 +48,41 @@ def get_credentials():
 
     print('Enter your username:')
     lines = []
-    lines.append(raw_input())
+    lines.append(input())
     lines.append(getpass())
 
     return lines
 
 
 def get_next_btn(browser):
-    return browser.find_element_by_name('nextButton')
+    return browser.find_element(By.NAME, 'nextButton')
 
 
-def login(creds):
+def login(creds, captcha):
 
     driver = webdriver.Chrome()
     driver.get(BASE_URL)
 
-    time.sleep(WAIT_DELAY)
+    if captcha:
+        print('Press enter to continue after Captcha:')
+        input()
+    else:
+        time.sleep(LOGIN_DELAY)
 
-    user = driver.find_element_by_name('USER')
+    try:
+        user = driver.find_element(By.NAME, 'USER')
+    except NoSuchElementException as exception:
+        exit("Could not find the login screen. Use --captcha option if you need to manually complete a captcha")
+
     user.send_keys(creds[0])
-    user = driver.find_element_by_name('PASSWORD')
+    user = driver.find_element(By.NAME, 'PASSWORD')
     user.send_keys(creds[1])
-    btn = driver.find_element_by_name('SUBMIT')
+    btn = driver.find_element(By.NAME, 'SUBMIT')
     btn.click()
 
     time.sleep(WAIT_DELAY)
 
-    tranLink = driver.find_element_by_xpath(u'//a[text()="View Transactions"]')
+    tranLink = driver.find_element(By.XPATH, u'//a[text()="View Transactions"]')
     tranLink.click()
 
     nextBtn = get_next_btn(driver)
@@ -83,15 +93,15 @@ def login(creds):
 def fetch_transactions(driver):
 
     trans = []
-    rows = driver.find_elements_by_css_selector('div[name="transactionsHistory"] tr[name="DataContainer"]')
+    rows = driver.find_elements(By.CSS_SELECTOR, 'div[name="transactionsHistory"] tr[name="DataContainer"]')
 
     for row in rows:
 
-        dateText = row.find_element_by_css_selector('div[name="Transaction_TransactionDate"]').text
+        dateText = row.find_element(By.CSS_SELECTOR, 'div[name="Transaction_TransactionDate"]').text
         date = parse_tran_date(dateText)
-        payer = row.find_element_by_css_selector('div[name="Transaction_CardName"]').text
-        desc_payee = row.find_element_by_css_selector('div[name="Transaction_TransactionDescription"]').text
-        amount = row.find_element_by_css_selector('div[name="Transaction_Amount"]').text
+        payer = row.find_element(By.CSS_SELECTOR, 'div[name="Transaction_CardName"]').text
+        desc_payee = row.find_element(By.CSS_SELECTOR, 'div[name="Transaction_TransactionDescription"]').text
+        amount = row.find_element(By.CSS_SELECTOR, 'div[name="Transaction_Amount"]').text
 
         if len(desc_payee) >= 23:
             payee = desc_payee[:23]
@@ -161,9 +171,11 @@ def get_file_name(export_path, s_d, e_d, extension):
         i += 1
 
 
-def export(csv, slow):
+def export(csv, slow, captcha):
 
     print('Use "export.py --help" to see all command line options')
+    WAIT_DELAY = 3
+    LOGIN_DELAY = 3
     if slow:
         WAIT_DELAY = 25
 
@@ -176,7 +188,7 @@ def export(csv, slow):
         return
 
     creds = get_credentials()
-    driver = login(creds)
+    driver = login(creds, captcha)
 
     trans = []
 
@@ -201,7 +213,7 @@ def export(csv, slow):
                 break
             nextButton.click()
             time.sleep(WAIT_DELAY);
-        except NoSuchElementException, err:
+        except (NoSuchElementException,) as err:
             break
 
     new_trans = db.get_only_new_transactions(trans)
@@ -245,11 +257,12 @@ def export(csv, slow):
     """
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("""I load transactions from 28degrees-online.gemoney.com.au.
+    parser = argparse.ArgumentParser("""I load transactions from 28degrees-online.latitudefinancial.com.au.
 If no arguments specified, I will produce a nice QIF file for you
 To get CSV, specify run me with --csv parameter""")
     parser.add_argument('--csv', action='store_true', help='Write CSV instead of QIF')
     parser.add_argument('--slow', action='store_true', help='Increase wait delay between actions. Use on slow internet connections or when 28degrees is acting up.')
+    parser.add_argument('--captcha', action='store_true', help='Wait until enter pressed, before login, to allow manual completion of captcha.')
     #parser.add_argument('--statements', action='store_true', default=False)
     args = parser.parse_args()
     export(**vars(args))

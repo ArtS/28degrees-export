@@ -4,7 +4,7 @@
 
 ## Description
 
-This utility logs into https://28degrees-online.gemoney.com.au website, using
+This utility logs into https://28degrees-online.latitudefinancial.com.au website, using
 your username and password, and simply grabs all your transactions from there,
 saving them into QIF file.
 
@@ -13,7 +13,7 @@ saving them into QIF file.
 
 You will need some things for this tool to work:
 
-1. Python
+1. Python 3
 1. WebDriver
 1. Selenium
 
